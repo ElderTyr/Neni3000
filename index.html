@@ -10,6 +10,7 @@
 </head>
 <body>
   <div id="map"></div>
+  <button id="refreshBtn">Actualizar Ruta</button>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
@@ -21,18 +22,46 @@
       maxZoom: 19
     }).addTo(map);
 
-    // Datos de polyline (ejemplo)
-    var rutas = [
-      {lat: 19.432608, lng: -99.133209},
-      {lat: 19.433, lng: -99.134},
-      {lat: 19.434, lng: -99.135}
-    ];
+    var polyline; // variable global para la ruta
 
-    // Dibujar polyline
-    var latlngs = rutas.map(p => [p.lat, p.lng]);
-    var polyline = L.polyline(latlngs, {color: 'red'}).addTo(map);
+    // Función para obtener datos de GAS y dibujar la ruta
+    async function actualizarRuta() {
+      try {
+        const response = await fetch("https://script.google.com/macros/s/AKfycbwaCyHpAnfUw9jat6IXiZA9ddbct3cuXcGweasImUmeE-BSAmVzxjkxJpLOoV9XP4lW/exec");
+        const data = await response.json();
 
-    map.fitBounds(polyline.getBounds());
+        if(data.error){
+          alert("Error al obtener la ruta: " + data.message);
+          return;
+        }
+
+        // Convertir coordenadas
+        const latlngs = data.polyline;
+
+        // Si ya hay una polyline, eliminarla
+        if(polyline) {
+          map.removeLayer(polyline);
+        }
+
+        // Dibujar nueva polyline
+        polyline = L.polyline(latlngs, {color: data.metadata.color}).addTo(map);
+
+        // Ajustar vista
+        map.fitBounds(polyline.getBounds());
+
+      } catch (err) {
+        console.error("Error al actualizar la ruta:", err);
+      }
+    }
+
+    // Botón para refrescar
+    document.getElementById("refreshBtn").addEventListener("click", actualizarRuta);
+
+    // Llamada inicial
+    actualizarRuta();
+
+    // Opcional: actualizar cada X segundos automáticamente
+    // setInterval(actualizarRuta, 60000); // cada 60s
   </script>
 </body>
 </html>
